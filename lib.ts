@@ -1,6 +1,5 @@
 import { loadPage } from './crawler/pageLoader';
-import { extractRates, findMinRate, findMaxRate } from './extractors/rateExtractor';
-import { detectProgramTypes } from './extractors/programExtractor';
+import { extractProgramsWithRates } from './extractors/programExtractor';
 import { ParseResult, MortgageProgram } from './types';
 import config from './config';
 import * as cheerio from 'cheerio';
@@ -17,46 +16,26 @@ export async function parseMortgage(
     
     const $ = cheerio.load(html);
     
-    const rateCandidates = extractRates($);
+    const programsWithRates = extractProgramsWithRates($);
     
-    if (rateCandidates.length === 0) {
+    if (programsWithRates.length === 0) {
       return {
         domain,
         status: 'error',
-        error: 'No mortgage rates found',
+        error: 'No mortgage programs found',
       };
     }
     
-    const uniqueRates = [...new Set(rateCandidates.map(r => r.rate))].sort((a, b) => a - b);
-    const rateMin = findMinRate(rateCandidates) ?? uniqueRates[0];
-    const rateMax = findMaxRate(rateCandidates) ?? uniqueRates[uniqueRates.length - 1];
-    
-    const programTypes = detectProgramTypes($);
-    
-    const programs: MortgageProgram[] = [];
-    
-    if (programTypes.length > 0) {
-      for (const pt of programTypes) {
-        programs.push({
-          type: pt.type,
-          regionCode: region,
-          rateMin,
-          rateMax,
-          isSpecial: pt.isSpecial,
-          specialName: pt.specialName,
-          sourceUrl: url,
-        });
-      }
-    } else {
-      programs.push({
-        type: 'new_building',
-        regionCode: region,
-        rateMin,
-        rateMax,
-        isSpecial: false,
-        sourceUrl: url,
-      });
-    }
+    const programs: MortgageProgram[] = programsWithRates.map(p => ({
+      name: p.name,
+      type: p.type,
+      regionCode: region,
+      rateMin: p.rateMin,
+      rateMax: p.rateMax,
+      isSpecial: p.isSpecial,
+      specialName: p.specialName,
+      sourceUrl: url,
+    }));
     
     return {
       domain,

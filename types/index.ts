@@ -7,7 +7,8 @@ export interface Bank {
 }
 
 export interface MortgageProgram {
-  type: 'new_building' | 'secondary' | 'refinancing';
+  name: string;
+  type: 'new_building';
   regionCode?: string;
   rateMin: number;
   rateMax: number;
